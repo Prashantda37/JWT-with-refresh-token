@@ -1,8 +1,9 @@
 const userService = require("../services/user.service")
-
+const { REFRESH_TOKEN } = require("../constants")
 const user = {
 	authenticate,
-	getAllUser
+	getAllUser,
+	refreshToken
 }
 module.exports = user;
 
@@ -26,11 +27,25 @@ function setTokenCookie(res, refreshToken) {
 		expires: new Date(Date.now() + 7 * 60 * 60 * 1000)
 	}
 
-	res.cookie("refreshToken", refreshToken, cookiesOptions)
+	res.cookie(REFRESH_TOKEN, refreshToken, cookiesOptions)
 }
 
 function getAllUser(req, res) {
 	userService.getAllUser().then((users) => {
 		res.json({users})
 	})
+}
+
+function refreshToken(req, res) {
+	const token = req.cookies[REFRESH_TOKEN];
+	const ipAddress = req.ip;
+	userService.refreshToken({token, ipAddress}).then((response) => {
+		setTokenCookie(res, response.refreshToken);
+		res.json(response);
+	}).catch((error) => {
+		res.status(403).json({
+			error
+		})
+	})
+
 }
