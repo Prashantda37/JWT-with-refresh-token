@@ -17,6 +17,8 @@ class UserService {
 		const jwtToken = this.generateJwtToken(user);
 		const refreshToken = this.generateRefreshToken(user, idAddress);
 
+		refreshToken.save()
+
 		return {
 			user,
 			jwtToken,
@@ -48,6 +50,44 @@ class UserService {
 	async getAllUser() {
 		const users = await db.User.find()
 		return users;
+	}
+
+	//Refresh token;
+	async refreshToken({token, ipAddress}) {
+
+		const refreshToken = await this.getRefreshToken(token);
+		const { user } = refreshToken;
+
+		// replace old refresh token with a new one and save
+		const newRefreshToken = this.generateRefreshToken(user, ipAddress);
+		refreshToken.revoked = Date.now();
+		refreshToken.revokedByIp = ipAddress;
+		refreshToken.replacedByToken = newRefreshToken.token;
+		await refreshToken.save();
+		await newRefreshToken.save();
+
+		// generate new jwt
+		const jwtToken = this.generateJwtToken(user);
+
+		// return basic details and tokens
+		return {
+			user,
+			jwtToken,
+			refreshToken: newRefreshToken.token
+		};
+	}
+
+	async getRefreshToken(token) {
+		const refreshToken = await db.RefreshToken.findOne({token}).populate("user");
+		if (!refreshToken || !refreshToken.isActive) throw 'Invalid token';
+		return refreshToken;
+	}
+
+	async getUserInfo(id) {
+		if (!db.isValidId(id)) throw "User not found....";
+		const user = await db.User.findById(id);
+		if (!user) throw 'User not found';
+		return user;
 	}
 
 }

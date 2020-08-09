@@ -3,12 +3,12 @@ const router = express.Router();
 const Joi = require("@hapi/joi");
 const authorize = require("../middleware/authorize")
 
-
 const user = require("../controllers/user.controller")
 
 router.post("/authenticate", requestValidate, user.authenticate);
 router.get("/all-user", authorize(), user.getAllUser);
 
+router.post("/refresh-token", user.refreshToken);
 
 module.exports = router;
 
